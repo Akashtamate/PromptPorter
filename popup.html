@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Porter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Tokens: light (default) ────────────────────────────────
+       All colours are defined here. Dark mode overrides below.
+       Nothing in the component CSS uses raw values.             */
+
+    :root {
+      --bg:  #f5f3ef;   /* page background — warm off-white, not clinical white  */
+      --bg1: #edeae5;   /* capture bar, action bar, compare panel                */
+      --bg2: #e4e1db;   /* input background, hover fill on items                 */
+      --bg3: #d9d5ce;   /* active fill on toggles                                */
+
+      --b0:  rgba(0,0,0,0.07);   /* section dividers, card borders               */
+      --b1:  rgba(0,0,0,0.12);   /* input borders, ghost button borders          */
+      --b2:  rgba(0,0,0,0.22);   /* focused input, active toggle border          */
+
+      --t0:  #1b1b1b;   /* primary   — bundle names, button labels               */
+      --t1:  #636363;   /* secondary — preview text, ghost button labels         */
+      --t2:  #9e9e9e;   /* tertiary  — timestamps, source tags, section labels   */
+      --t3:  #c6c6c6;   /* ghost     — decorative only                           */
+
+      --accent:      #1a9068;
+      --accent-hi:   #1daa7a;
+      --accent-dim:  rgba(26,144,104,0.10);
+      --accent-line: rgba(26,144,104,0.38);
+
+      --red:      #c43c3c;
+      --red-dim:  rgba(196,60,60,0.09);
+      --red-line: rgba(196,60,60,0.32);
+
+      --sans: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+    }
+
+    /* ── Tokens: dark override ──────────────────────────────────
+       NOT pure black. #1e1e21 is Apple's macOS dark surface tone.
+       Text is off-white, not white — same warmth principle.      */
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:  #1e1e21;
+        --bg1: #252528;
+        --bg2: #2c2c30;
+        --bg3: #343438;
+
+        --b0:  rgba(255,255,255,0.06);
+        --b1:  rgba(255,255,255,0.10);
+        --b2:  rgba(255,255,255,0.18);
+
+        --t0:  #e5e5e3;
+        --t1:  #7a7a7e;
+        --t2:  #4c4c50;
+        --t3:  #313134;
+      }
+    }
+
+    /* ── Base ───────────────────────────────────────────────── */
+
+    body {
+      width: 380px;
+      min-height: 200px;
+      max-height: 560px;
+      background: var(--bg);
+      color: var(--t0);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 15px;
+      border-bottom: 1px solid var(--b0);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .logo-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1px solid var(--b1);
+      background: var(--bg2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--t2);
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--t0);
+    }
+
+    .platform-badge {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid var(--b0);
+      color: var(--t2);
+      background: transparent;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .platform-badge.detected {
+      border-color: var(--accent-line);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* ── Capture bar ─────────────────────────────────────────── */
+
+    .capture-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 15px;
+      border-bottom: 1px solid var(--b0);
+      flex-shrink: 0;
+      background: var(--bg1);
+    }
+
+    .capture-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--b1);
+      border-radius: 4px;
+      padding: 6px 9px;
+      color: var(--t0);
+      font-size: 12px;
+      font-family: var(--sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .capture-input::placeholder { color: var(--t2); }
+    .capture-input:focus { border-color: var(--b2); }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+
+    .btn {
+      padding: 6px 11px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--sans);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.08s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+
+    /* Primary — accent green: ONLY Capture + Inject */
+    .btn-capture {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn-capture:hover:not(:disabled) {
+      background: var(--accent-hi);
+      border-color: var(--accent-hi);
+    }
+
+    /* Ghost — transparent at rest */
+    .btn-ghost {
+      background: transparent;
+      color: var(--t1);
+      border-color: var(--b1);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      color: var(--t0);
+      border-color: var(--b2);
+      background: var(--bg2);
+    }
+
+    /* Danger — neutral at rest, red on hover */
+    .btn-danger {
+      background: transparent;
+      color: var(--t1);
+      border-color: var(--b1);
+    }
+    .btn-danger:hover:not(:disabled) {
+      color: var(--red);
+      border-color: var(--red-line);
+      background: var(--red-dim);
+    }
+
+    /* ── Bundle list ─────────────────────────────────────────── */
+
+    .bundle-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .bundle-list::-webkit-scrollbar { width: 3px; }
+    .bundle-list::-webkit-scrollbar-track { background: transparent; }
+    .bundle-list::-webkit-scrollbar-thumb { background: var(--b1); border-radius: 2px; }
+
+    .empty-state {
+      padding: 44px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .empty-icon  { font-size: 22px; margin-bottom: 12px; opacity: 0.28; }
+    .empty-title { font-size: 13px; font-weight: 500; margin-bottom: 5px; color: var(--t1); }
+    .empty-hint  { font-size: 11.5px; line-height: 1.65; color: var(--t2); max-width: 200px; }
+
+    /* ── Bundle item ─────────────────────────────────────────── */
+
+    .bundle-item {
+      padding: 9px 15px 9px 13px;
+      border-bottom: 1px solid var(--b0);
+      border-left: 2px solid transparent;   /* selection rail */
+      cursor: pointer;
+      transition: background 0.1s, border-left-color 0.12s;
+    }
+
+    .bundle-item:last-child { border-bottom: none; }
+    .bundle-item:hover { background: var(--bg1); }
+
+    /* Selected: thin accent rail + one-step surface lift */
+    .bundle-item.selected {
+      background: var(--bg1);
+      border-left-color: var(--accent);
+    }
+
+    .bundle-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .bundle-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t0);
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+
+    .bundle-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .source-tag {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: transparent;
+      color: var(--t2);
+      border: 1px solid var(--b0);
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--t2);
+      font-size: 14px;
+      padding: 0;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.1s, color 0.1s;
+      flex-shrink: 0;
+    }
+
+    .bundle-item:hover .delete-btn { opacity: 1; }
+    .delete-btn:hover { color: var(--red); }
+
+    .bundle-preview {
+      font-size: 11.5px;
+      color: var(--t1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .bundle-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-chips {
+      display: flex;
+      gap: 3px;
+      flex-wrap: nowrap;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .file-chip {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.02em;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: transparent;
+      color: var(--t2);
+      border: 1px solid var(--b0);
+      max-width: 90px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+
+    .time-label {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--t2);
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Action bar ──────────────────────────────────────────── */
+
+    .action-bar {
+      padding: 8px 15px;
+      border-top: 1px solid var(--b0);
+      display: none;
+      flex-direction: column;
+      gap: 7px;
+      flex-shrink: 0;
+      background: var(--bg1);
+    }
+
+    .action-bar.visible { display: flex; }
+
+    .action-label {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--t2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Compare section ─────────────────────────────────────── */
+
+    .compare-section {
+      padding: 8px 15px;
+      border-top: 1px solid var(--b0);
+      flex-shrink: 0;
+      background: var(--bg1);
+    }
+
+    .compare-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+
+    .compare-label {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--t2);
+    }
+
+    .platform-toggles {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .platform-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--b0);
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--sans);
+      color: var(--t2);
+      transition: color 0.1s, border-color 0.1s, background 0.1s;
+      user-select: none;
+    }
+
+    .platform-toggle.active {
+      border-color: var(--b2);
+      color: var(--t0);
+      background: var(--bg2);
+    }
+
+    .platform-toggle input { display: none; }
+
+    .compare-btn {
+      width: 100%;
+      justify-content: center;
+      margin-top: 7px;
+      font-size: 11.5px;
+    }
+
+    /* ── Auto-send checkbox ───────────────────────────────────── */
+
+    .auto-send-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 7px 0;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      color: var(--t0);
+    }
+
+    .auto-send-label input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid var(--b1);
+      border-radius: 3px;
+      background: var(--bg);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .auto-send-label input[type="checkbox"]:hover {
+      border-color: var(--b2);
+    }
+
+    .auto-send-label input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .auto-send-label input[type="checkbox"]:checked::after {
+      content: '✓';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* ── Status ──────────────────────────────────────────────── */
+
+    .status {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      padding: 5px 15px;
+      text-align: center;
+      border-top: 1px solid var(--b0);
+      color: var(--t2);
+      min-height: 25px;
+      flex-shrink: 0;
+    }
+
+    .status.success { color: var(--accent); }
+    .status.error   { color: var(--red);    }
+
+    /* ── Shortcuts ───────────────────────────────────────────── */
+
+    .shortcut-hints {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 5px 15px 9px;
+      border-top: 1px solid var(--b0);
+      flex-shrink: 0;
+    }
+
+    .hint {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--t2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.02em;
+    }
+
+    kbd {
+      background: var(--bg2);
+      border: 1px solid var(--b1);
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--t1);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⇄</div>
+      <span class="logo-text">Prompt Porter</span>
+    </div>
+    <span class="platform-badge" id="platform-badge">Not detected</span>
+  </div>
+
+  <!-- Capture bar -->
+  <div class="capture-bar">
+    <input class="capture-input" id="bundle-label" type="text" placeholder="Bundle name (optional)…" />
+    <button class="btn btn-capture" id="capture-btn">⬇ Capture</button>
+  </div>
+
+  <!-- Bundle list -->
+  <div class="bundle-list" id="bundle-list">
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">No bundles yet</div>
+      <div class="empty-hint">Open an LLM, type your prompt, attach files,<br>then hit Capture.</div>
+    </div>
+  </div>
+
+  <!-- Action bar (shown when a bundle is selected) -->
+  <div class="action-bar" id="action-bar">
+    <div class="action-label" id="action-label">Selected bundle</div>
+    <div class="action-row">
+      <button class="btn btn-capture" id="inject-here-btn">↗ Inject here</button>
+      <button class="btn btn-ghost" id="copy-text-btn">⎘ Copy text</button>
+      <button class="btn btn-danger" id="delete-selected-btn">✕ Delete</button>
+    </div>
+  </div>
+
+  <!-- Compare mode -->
+  <div class="compare-section" id="compare-section" style="display:none">
+    <div class="compare-header">
+      <span class="compare-label">Compare mode — open in…</span>
+    </div>
+    <div class="platform-toggles">
+      <label class="platform-toggle active" data-url="https://claude.ai/">
+        <input type="checkbox" value="https://claude.ai/" checked /> Claude
+      </label>
+      <label class="platform-toggle active" data-url="https://chatgpt.com/">
+        <input type="checkbox" value="https://chatgpt.com/" checked /> ChatGPT
+      </label>
+      <label class="platform-toggle active" data-url="https://gemini.google.com/">
+        <input type="checkbox" value="https://gemini.google.com/" checked /> Gemini
+      </label>
+      <label class="platform-toggle" data-url="https://grok.com/">
+        <input type="checkbox" value="https://grok.com/" /> Grok
+      </label>
+    </div>
+    <label class="auto-send-label">
+      <input type="checkbox" id="auto-send" />
+      <span>Auto-send after injection</span>
+    </label>
+    <button class="btn btn-ghost compare-btn" id="compare-btn">⇢ Open in selected platforms</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <!-- Shortcut hints -->
+  <!-- <div class="shortcut-hints">
+    <span class="hint"><kbd>⌘⇧S</kbd> Capture</span>
+    <span class="hint"><kbd>⌘⇧V</kbd> Inject last</span>
+  </div> -->
+
+  <script src="popup.js"></script>
+</body>
+</html>
