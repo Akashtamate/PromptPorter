@@ -1,6 +1,10 @@
 # Prompt Porter
  
 **Capture prompts and file attachments from one AI platform and replay them on any other - in one click.**
+
+<img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/265b5b47-8df1-4cf3-a901-6808fdedd9f4" /> <img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/9d27be93-94a4-4301-a10f-5a7b01fe4f73" />
+
+
  
 ![Manifest Version](https://img.shields.io/badge/manifest-v3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
