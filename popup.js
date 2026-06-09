@@ -7,6 +7,15 @@ let selectedBundleId = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function setStatus(msg, type = '') {
   const el = $('status');
   el.textContent = msg;
@@ -62,7 +71,7 @@ function renderBundles() {
   list.innerHTML = bundles.map((b) => {
     const files = b.files || [];
     const fileChips = files.slice(0, 3).map((f) =>
-      `<span class="file-chip" title="${f.name}">${f.name}</span>`
+      `<span class="file-chip" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>`
     ).join('');
     const moreFiles = files.length > 3 ? `<span class="file-chip">+${files.length - 3}</span>` : '';
     const isSelected = b.id === selectedBundleId;
@@ -70,13 +79,13 @@ function renderBundles() {
     return `
       <div class="bundle-item${isSelected ? ' selected' : ''}" data-id="${b.id}">
         <div class="bundle-header">
-          <span class="bundle-label">${b.label || 'Untitled bundle'}</span>
+          <span class="bundle-label">${escapeHtml(b.label || 'Untitled bundle')}</span>
           <div class="bundle-meta">
-            <span class="source-tag">${b.source || '?'}</span>
+            <span class="source-tag">${escapeHtml(b.source || '?')}</span>
             <button class="delete-btn" data-id="${b.id}" title="Delete">×</button>
           </div>
         </div>
-        ${b.text ? `<div class="bundle-preview">${truncate(b.text)}</div>` : ''}
+        ${b.text ? `<div class="bundle-preview">${escapeHtml(truncate(b.text))}</div>` : ''}
         <div class="bundle-footer">
           <div class="file-chips">${fileChips}${moreFiles}</div>
           <span class="time-label">${relativeTime(b.createdAt)}</span>
@@ -291,26 +300,54 @@ $('compare-btn').addEventListener('click', async () => {
   }
 });
 
+async function loadShortcuts() {
+  try {
+    const commands = await chrome.commands.getAll();
+
+    const capture = commands.find(
+      c => c.name === 'capture-bundle'
+    );
+
+    const inject = commands.find(
+      c => c.name === 'inject-bundle'
+    );
+
+    if (capture?.shortcut) {
+      $('capture-shortcut').textContent =
+        capture.shortcut;
+    }
+
+    if (inject?.shortcut) {
+      $('inject-shortcut').textContent =
+        inject.shortcut;
+    }
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 // ── Debug dump ────────────────────────────────────────────────────────────────
 // Triggered by clicking the platform badge. Dumps a snapshot to the console
 // of the active tab — open DevTools on the LLM page to see [PromptPorter] logs.
 
-$('platform-badge').style.cursor = 'pointer';
-$('platform-badge').title = 'Click to run debug dump (check DevTools console on the LLM tab)';
-$('platform-badge').addEventListener('click', async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return;
-  chrome.tabs.sendMessage(tab.id, { type: 'DEBUG_DUMP' }, (res) => {
-    if (chrome.runtime.lastError) {
-      setStatus('Debug failed: ' + chrome.runtime.lastError.message, 'error');
-      return;
-    }
-    console.log('[PromptPorter popup] DEBUG_DUMP result:', res);
-    setStatus(`Debug dumped — open DevTools on the LLM tab (Console, filter: PromptPorter)`, '');
-  });
-});
+// $('platform-badge').style.cursor = 'pointer';
+// $('platform-badge').title = 'Click to run debug dump (check DevTools console on the LLM tab)';
+// $('platform-badge').addEventListener('click', async () => {
+//   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+//   if (!tab) return;
+//   chrome.tabs.sendMessage(tab.id, { type: 'DEBUG_DUMP' }, (res) => {
+//     if (chrome.runtime.lastError) {
+//       setStatus('Debug failed: ' + chrome.runtime.lastError.message, 'error');
+//       return;
+//     }
+//     console.log('[PromptPorter popup] DEBUG_DUMP result:', res);
+//     setStatus(`Debug dumped — open DevTools on the LLM tab (Console, filter: PromptPorter)`, '');
+//   });
+// });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 detectPlatform();
 loadBundles();
+loadShortcuts();

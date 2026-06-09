@@ -3,8 +3,12 @@
 // File injection is handled entirely via injector.js (MAIN world) which has
 // access to React fibers, Angular contexts, and Quill instances directly.
 
+const DEBUG = false;
+
 function PP_LOG(...args) {
-  console.log('%c[PromptPorter]', 'color:#1D9E75;font-weight:bold', ...args);
+  if (DEBUG) {
+    console.log('%c[PromptPorter]', 'color:#1D9E75;font-weight:bold', ...args);
+  }
 }
 
 // ── pendingFiles — cleared after each capture ─────────────────────────────────
@@ -495,17 +499,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     } else if (msg.type === 'PING') {
       sendResponse({ ok: true, platform: getAdapter()?.name || 'unknown' });
 
-    } else if (msg.type === 'DEBUG_DUMP') {
-      const adapter = getAdapter();
-      sendResponse({
-        ok: true,
-        platform: adapter?.name || 'none',
-        hostname: location.hostname,
-        textarea: (() => { const e = adapter?.getTextarea(); return e ? { tag: e.tagName, class: e.className?.slice(0,80) } : null; })(),
-        pendingFiles: Array.from(pendingFiles.keys()),
-        injectorReady,
-      });
-    }
+    } 
+    
+    // else if (msg.type === 'DEBUG_DUMP') {
+    //   const adapter = getAdapter();
+    //   sendResponse({
+    //     ok: true,
+    //     platform: adapter?.name || 'none',
+    //     hostname: location.hostname,
+    //     textarea: (() => { const e = adapter?.getTextarea(); return e ? { tag: e.tagName, class: e.className?.slice(0,80) } : null; })(),
+    //     pendingFiles: Array.from(pendingFiles.keys()),
+    //     injectorReady,
+    //   });
+    // }
   })();
   return true;
 });

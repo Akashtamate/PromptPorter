@@ -12,8 +12,12 @@
 (function () {
   'use strict';
 
+  const DEBUG = false;
+
   function PP(...args) {
-    console.log('%c[PromptPorter:MAIN]', 'color:#f59e0b;font-weight:bold', ...args);
+    if (DEBUG) {
+      console.log('%c[PromptPorter:MAIN]', 'color:#f59e0b;font-weight:bold', ...args);
+    }
   }
 
   // ── React fiber utilities ─────────────────────────────────────────────────
