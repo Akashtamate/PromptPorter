@@ -2,7 +2,7 @@
  
 **Capture prompts and file attachments from one AI platform and replay them on any other - in one click.**
 
-**Chrome extension link**: https://chromewebstore.google.com/detail/adadidabhecpedoglmkocckdhjncafbd?utm_source=item-share-cb
+**Chrome extension link**: [Prompt Porter](https://chromewebstore.google.com/detail/adadidabhecpedoglmkocckdhjncafbd?utm_source=item-share-cb)
 
 <img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/265b5b47-8df1-4cf3-a901-6808fdedd9f4" /> <img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/9d27be93-94a4-4301-a10f-5a7b01fe4f73" />
 
